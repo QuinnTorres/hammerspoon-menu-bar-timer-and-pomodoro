@@ -97,7 +97,7 @@ local function notify_and_set_next_timer()
         start_timer(next_timer_minutes)
     end
 
-    send_timer_notification(options.initial_minutes, 0, previous_timer_was_work_session)
+    send_timer_notification(options.initial_minutes, next_timer_minutes, previous_timer_was_work_session)
 end
 
 ------
@@ -105,16 +105,6 @@ end
 local function update_timer()
     update_current_timer()
     update_menu_bar_text()
-end
-
-------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function pom_create_menu(pom_origin)
-    if options.menu_bar_app == nil then
-        options.menu_bar_app = hs.menubar.new()
-    end
 end
 
 ------
@@ -248,7 +238,10 @@ local function start_timer(minutes, label)
 
     end_current_timer()
 
-    pom_create_menu()
+    if options.menu_bar_app == nil then
+        options.menu_bar_app = hs.menubar.new()
+    end
+
     options.current_timer = hs.timer.doEvery(1, update_timer)
 end
 

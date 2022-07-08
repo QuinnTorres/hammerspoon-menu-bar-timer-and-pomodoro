@@ -25,7 +25,7 @@ local options = {
     timer_message = '', -- Optional message to show to the side of the timer
     is_work_session = false, -- If the current timer is a pomodoro work session
     is_pom_timer = false, -- If the current timer is a pomodoro timer
-    current_pom_count = 0 -- Total number of pomodoros completed
+    current_pom_count = 1 -- Total number of pomodoros completed
 }
 
 ------
@@ -255,30 +255,22 @@ local function start_timer(minutes, label)
     options.initial_minutes = minutes
     options.seconds_remaining = minutes_to_seconds(minutes)
     options.timer_message = label or ''
+    options.current_pom_count = 1
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Start a new pomodoro timer that will alternative between work and break sessions
 local function start_pom_timer()
     options.is_work_session = true
     options.is_pom_timer = true
-    options.current_pom_count = 1
-    WORK_MINUTES = 25
-    SMALL_BREAK_MINUTES = 5
-    LARGE_BREAK_MINUTES = 15
+
     start_timer(WORK_MINUTES)
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function start_alert_timer(time, show)
-    options.is_work_session = false
-    options.is_pom_timer = false
-    new_time = time
+-- Start a new timer based on how long it will take to count down to a specified 12-hour-formatted time
+-- @param time the 12-hour-formatted time to count down to (Ex: "2:23 pm")
+local function start_alert_timer(time)
     if hs.fnutils.split(time, ' ')[2] == 'pm' then
         new_hour = tonumber(string.sub(time, 1, 2)) + 12
         new_time = new_hour .. string.sub(time, 3, 5)
@@ -312,8 +304,6 @@ local function end_timer()
 
     options.is_work_session = false
     options.is_pom_timer = false
-    options.current_pom_count = 1
-    options.timer_message = ''
 end
 
 ------

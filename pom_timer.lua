@@ -25,7 +25,7 @@ local options = {
     timer_message = '', -- Optional message to show to the side of the timer
     is_work_session = false, -- If the current timer is a pomodoro work session
     is_pom_timer = false, -- If the current timer is a pomodoro timer
-    completed_pom_count = 0 -- Total number of pomodoros completed
+    current_pom_count = 0 -- Total number of pomodoros completed
 }
 
 ------
@@ -37,7 +37,6 @@ local WORK_MINUTES = 25
 local SMALL_BREAK_MINUTES = 5
 local LARGE_BREAK_MINUTES = 15
 local POMS_UNTIL_LARGE_BREAK = 4
-
 local WORK_LABEL = ' work'
 local BREAK_LABEL = ' break'
 
@@ -52,8 +51,8 @@ local function update_menu_bar_text()
 end
 
 ------
--- End the current timer and remove the menu bar app
-local function end_current_timer()
+-- End the current timer session and remove the menu bar app
+local function end_timer_session()
     if options.current_timer then
         options.current_timer:stop()
         options.current_timer = nil
@@ -69,7 +68,7 @@ local function update_current_timer()
     options.seconds_remaining = options.seconds_remaining - 1
 
     if options.seconds_remaining <= 0 then
-        end_current_timer()
+        end_timer_session()
         notify_and_set_next_timer()
     end
 end
@@ -85,13 +84,13 @@ local function notify_and_set_next_timer()
             next_timer_minutes = SMALL_BREAK_MINUTES
             options.is_work_session = false
 
-            if options.completed_pom_count % POMS_UNTIL_LARGE_BREAK == 0 then
+            if options.current_pom_count % POMS_UNTIL_LARGE_BREAK == 0 then
                 next_timer_minutes = LARGE_BREAK_MINUTES
             end
         else
             next_timer_minutes = WORK_MINUTES
             options.is_work_session = true
-            options.completed_pom_count = options.completed_pom_count + 1
+            options.current_pom_count = options.current_pom_count + 1
         end
 
         start_timer(next_timer_minutes)
@@ -136,7 +135,7 @@ local function get_pom_text()
             pom_symbol = '☀'
         end
 
-        return ' | ' .. pom_symbol .. ' ' .. options.completed_pom_count
+        return ' | ' .. pom_symbol .. ' ' .. options.current_pom_count
     else
         return ''
     end
@@ -197,84 +196,89 @@ local function get_session_labels(next_session_minutes, is_work)
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Convert minutes to hours, rounded
+-- @param minutes the number of minutes to convert
+-- @return the number of minutes converted to hours
 local function minutes_to_hours(minutes)
     return math.floor((minutes / 60))
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Convert seconds to minutes, rounded
+-- @param seconds the number of seconds to convert
+-- @return the number of seconds converted to minutes
 local function seconds_to_minutes(seconds)
     return math.floor((seconds / 60))
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Convert minutes to seconds
+-- @param minutes the number of minutes to convert
+-- @return the number of minutes converted to seconds
 local function minutes_to_seconds(minutes)
     return minutes * 60
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Convert hours to minutes
+-- @param hours the number of hours to convert
+-- @return the number of hours converted to minutes
 local function hours_to_minutes(hours)
     return hours * 60
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Start a new timer counting down from a given number of minutes and showing an optional label
+-- @param minutes the number of minutes to count down from
+-- @param label the optional label to show next to the timer
 local function start_timer(minutes, label)
+    end_timer()
+
+    options.current_timer = hs.timer.doEvery(1, update_timer)
+    options.menu_bar_app = hs.menubar.new()
     options.initial_minutes = minutes
     options.seconds_remaining = minutes_to_seconds(minutes)
     options.timer_message = label or ''
-
-    end_current_timer()
-
-    if options.menu_bar_app == nil then
-        options.menu_bar_app = hs.menubar.new()
-    end
-
-    options.current_timer = hs.timer.doEvery(1, update_timer)
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- End the entire timer and all sessions
 local function end_timer()
-    end_current_timer()
+    end_timer_session()
+
     options.is_work_session = false
     options.is_pom_timer = false
-    options.completed_pom_count = 1
+    options.current_pom_count = 1
     options.timer_message = ''
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Add a specificed number of minutes to the current timer session
+-- @param minutes the number of minutes to add
 local function add_to_timer(minutes)
-    if options.current_timer then
-        options.seconds_remaining = options.seconds_remaining - minutes_to_seconds(minutes)
-    end
+    adjust_timer(minutes, false)
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Subtract a specificed number of minutes from the current timer session
+-- @param minutes the number of minutes to subtract
 local function subtract_from_timer(minutes)
+    adjust_timer(minutes, true)
+end
+
+------
+-- Add or subtract a specificed number of minutes to/from the current timer session
+-- @param minutes the number of minutes to subtract/add
+-- @param should_subtract if the minutes should be subtracted, otherwise added
+local function adjust_timer(minutes, should_subtract)
+    seconds_to_adjust = minutes_to_seconds(minutes)
+
     if options.current_timer then
-        options.seconds_remaining = options.seconds_remaining + minutes_to_seconds(minutes)
+        if should_subtract then
+            seconds_to_adjust = seconds_to_adjust * -1
+        end
+
+        options.seconds_remaining = options.seconds_remaining + seconds_to_adjust
     end
 end
 
@@ -305,7 +309,7 @@ end
 local function start_pom_timer()
     options.is_work_session = true
     options.is_pom_timer = true
-    options.completed_pom_count = 1
+    options.current_pom_count = 1
     WORK_MINUTES = 25
     SMALL_BREAK_MINUTES = 5
     LARGE_BREAK_MINUTES = 15

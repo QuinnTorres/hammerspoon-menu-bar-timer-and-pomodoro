@@ -196,6 +196,22 @@ local function get_session_labels(next_session_minutes, is_work)
 end
 
 ------
+-- Add or subtract a specificed number of minutes to/from the current timer session
+-- @param minutes the number of minutes to subtract/add
+-- @param should_subtract if the minutes should be subtracted, otherwise added
+local function adjust_timer(minutes, should_subtract)
+    seconds_to_adjust = minutes_to_seconds(minutes)
+
+    if options.current_timer then
+        if should_subtract then
+            seconds_to_adjust = seconds_to_adjust * -1
+        end
+
+        options.seconds_remaining = options.seconds_remaining + seconds_to_adjust
+    end
+end
+
+------
 -- Convert minutes to hours, rounded
 -- @param minutes the number of minutes to convert
 -- @return the number of minutes converted to hours
@@ -242,67 +258,6 @@ local function start_timer(minutes, label)
 end
 
 ------
--- End the entire timer and all sessions
-local function end_timer()
-    end_timer_session()
-
-    options.is_work_session = false
-    options.is_pom_timer = false
-    options.current_pom_count = 1
-    options.timer_message = ''
-end
-
-------
--- Add a specificed number of minutes to the current timer session
--- @param minutes the number of minutes to add
-local function add_to_timer(minutes)
-    adjust_timer(minutes, false)
-end
-
-------
--- Subtract a specificed number of minutes from the current timer session
--- @param minutes the number of minutes to subtract
-local function subtract_from_timer(minutes)
-    adjust_timer(minutes, true)
-end
-
-------
--- Add or subtract a specificed number of minutes to/from the current timer session
--- @param minutes the number of minutes to subtract/add
--- @param should_subtract if the minutes should be subtracted, otherwise added
-local function adjust_timer(minutes, should_subtract)
-    seconds_to_adjust = minutes_to_seconds(minutes)
-
-    if options.current_timer then
-        if should_subtract then
-            seconds_to_adjust = seconds_to_adjust * -1
-        end
-
-        options.seconds_remaining = options.seconds_remaining + seconds_to_adjust
-    end
-end
-
-------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function pause_timer()
-    if options.current_timer then
-        options.current_timer:stop()
-    end
-end
-
-------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function unpause_timer()
-    if options.current_timer then
-        options.current_timer = hs.timer.doEvery(1, update_timer)
-    end
-end
-
-------
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
@@ -331,4 +286,46 @@ local function start_alert_timer(time, show)
 
     timer_length = seconds_to_minutes(hs.timer.seconds(new_time) - hs.timer.localTime())
     start_timer(timer_length)
+end
+
+
+------
+-- Pause the current timer session
+local function pause_timer()
+    if options.current_timer then
+        options.current_timer:stop()
+    end
+end
+
+------
+-- Un-pause the current timer session
+local function unpause_timer()
+    if options.current_timer then
+        options.current_timer = hs.timer.doEvery(1, update_timer)
+    end
+end
+
+------
+-- End the entire timer and all sessions
+local function end_timer()
+    end_timer_session()
+
+    options.is_work_session = false
+    options.is_pom_timer = false
+    options.current_pom_count = 1
+    options.timer_message = ''
+end
+
+------
+-- Add a specificed number of minutes to the current timer session
+-- @param minutes the number of minutes to add
+local function add_to_timer(minutes)
+    adjust_timer(minutes, false)
+end
+
+------
+-- Subtract a specificed number of minutes from the current timer session
+-- @param minutes the number of minutes to subtract
+local function subtract_from_timer(minutes)
+    adjust_timer(minutes, true)
 end

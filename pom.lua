@@ -7,15 +7,20 @@
 pom_timer = {}
 
 local options = {
-    current_timer = nil,
-    initial_min = 0,
-    sec_remaining = 0,
-    timer_message = '',
-    is_work_session = false,
-    is_pom_timer = false,
-    total_pom_count = 0
+    current_timer = nil, -- Hammerspoon timer instance
+    menu_bar_app = nil, -- Hammerspoon menu bar instance
+    initial_min = 0, -- Minutes set for the current timer
+    sec_remaining = 0, -- Seconds left until the current timer is done
+    timer_message = '', -- Optional message to show to the side of the timer
+    is_work_session = false, -- If the current timer is a pomodoro work session
+    is_pom_timer = false, -- If the current timer is a pomodoro timer
+    completed_pom_count = 0 -- Total number of pomodoros completed
 }
 
+-- Default pomodoro timings
+-- Work session: 25 minutes
+-- Small break session: 5 minutes
+-- Large break session: 15 minutes
 local WORK_MIN = 25
 local SMALL_BREAK_MIN = 5
 local LARGE_BREAK_MIN = 15
@@ -25,35 +30,33 @@ local LARGE_BREAK_MIN = 15
 -- @param s the string
 -- @return @{stdvars}
 local function pom_update_display()
-    if (pom_menu) then
-        str = ""
-        time_min = math.floor((options.sec_remaining / 60))
-        time_sec = options.sec_remaining - (time_min * 60)
+    menu_bar_text = ''
+    time_min = math.floor((options.sec_remaining / 60))
+    time_sec = options.sec_remaining - (time_min * 60)
 
-        if (time_min >= 60) then
-            time_hour = math.floor(time_min / 60)
-            time_min = time_min - time_hour * 60
-            str = string.format("%d:%02d:%02d", time_hour, time_min, time_sec)
-        else
-            str = string.format("%d:%02d", time_min, time_sec)
-        end
-
-        if (options.is_work_session == true) then
-            str = str .. " | ✎"
-        else
-            str = str .. " | ☀"
-        end
-
-        if (options.is_pom_timer == true) then
-            str = str .. " " .. (options.total_pom_count)
-        end
-
-        if (options.timer_message ~= '') then
-            str = str .. " -" .. options.timer_message;
-        end
-
-        pom_menu:setTitle(str)
+    if (time_min >= 60) then
+        time_hour = math.floor(time_min / 60)
+        time_min = time_min - time_hour * 60
+        menu_bar_text = string.format('%d:%02d:%02d', time_hour, time_min, time_sec)
+    else
+        menu_bar_text = string.format('%d:%02d', time_min, time_sec)
     end
+
+    if (options.is_work_session == true) then
+        menu_bar_text = menu_bar_text .. ' | ✎'
+    else
+        menu_bar_text = menu_bar_text .. ' | ☀'
+    end
+
+    if (options.is_pom_timer == true) then
+        menu_bar_text = menu_bar_text .. ' ' .. (options.completed_pom_count)
+    end
+
+    if (options.timer_message ~= '') then
+        menu_bar_text = menu_bar_text .. ' -' .. options.timer_message;
+    end
+
+    options.menu_bar_app:setTitle(menu_bar_text)
 end
 
 ------
@@ -63,8 +66,8 @@ end
 local function pom_disable()
     if (options.current_timer) then
         options.current_timer:stop()
-        pom_menu:delete()
-        pom_menu = nil
+        options.menu_bar_app:delete()
+        options.menu_bar_app = nil
         options.current_timer:stop()
         options.current_timer = nil
     end
@@ -82,30 +85,30 @@ local function pom_update_time()
 
         if (options.is_pom_timer) then
             if (options.is_work_session == true) then
-                if (options.total_pom_count % 4 == 0) then
+                if (options.completed_pom_count % 4 == 0) then
                     hs.notify.new({
-                        title = string.format("%.2f", options.initial_min) .. " work minutes are over",
-                        subTitle = "Starting " .. string.format("%.2f", LARGE_BREAK_MIN) ..
-                            " minute big break timer",
+                        title = string.format('%.2f', options.initial_min) .. ' work minutes are over',
+                        subTitle = 'Starting ' .. string.format('%.2f', LARGE_BREAK_MIN) ..
+                            ' minute big break timer',
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
                     options.is_work_session = false
                     pom_enable(LARGE_BREAK_MIN)
                 else
                     hs.notify.new({
-                        title = string.format("%.2f", options.initial_min) .. " work minutes are over",
-                        subTitle = "Starting " .. string.format("%.2f", SMALL_BREAK_MIN) .. " minute break timer",
+                        title = string.format('%.2f', options.initial_min) .. ' work minutes are over',
+                        subTitle = 'Starting ' .. string.format('%.2f', SMALL_BREAK_MIN) .. ' minute break timer',
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
                     options.is_work_session = false
                     pom_enable(SMALL_BREAK_MIN)
                 end
             else
-                options.total_pom_count = options.total_pom_count + 1
+                options.completed_pom_count = options.completed_pom_count + 1
 
                 hs.notify.new({
-                    title = string.format("%.2f", options.initial_min) .. " break minutes are over",
-                    subTitle = "Starting " .. string.format("%.2f", WORK_MIN) .. " minute work timer",
+                    title = string.format('%.2f', options.initial_min) .. ' break minutes are over',
+                    subTitle = 'Starting ' .. string.format('%.2f', WORK_MIN) .. ' minute work timer',
                     soundName = hs.notify.defaultNotificationSound
                 }):send()
                 options.is_work_session = true
@@ -113,7 +116,7 @@ local function pom_update_time()
             end
         else
             hs.notify.new({
-                title = string.format("%.2f", options.initial_min) .. " minutes are over",
+                title = string.format('%.2f', options.initial_min) .. ' minutes are over',
                 soundName = hs.notify.defaultNotificationSound
             }):send()
         end
@@ -134,8 +137,8 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_create_menu(pom_origin)
-    if pom_menu == nil then
-        pom_menu = hs.menubar.new()
+    if options.menu_bar_app == nil then
+        options.menu_bar_app = hs.menubar.new()
     end
 end
 
@@ -162,7 +165,7 @@ function pom_timer.stop_timers()
     pom_disable()
     options.is_work_session = false
     options.is_pom_timer = false
-    options.total_pom_count = 1
+    options.completed_pom_count = 1
     options.timer_message = ''
 end
 
@@ -171,7 +174,9 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.jump_timer(minutes)
-    options.sec_remaining = options.sec_remaining - (minutes * 60)
+    if options.current_timer then
+        options.sec_remaining = options.sec_remaining - (minutes * 60)
+    end
 end
 
 ------
@@ -179,7 +184,9 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.back_timer(minutes)
-    options.sec_remaining = options.sec_remaining + (minutes * 60)
+    if options.current_timer then
+        options.sec_remaining = options.sec_remaining + (minutes * 60)
+    end
 end
 
 ------
@@ -187,7 +194,9 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.pause_timers()
-    options.current_timer:stop()
+    if options.current_timer then
+        options.current_timer:stop()
+    end
 end
 
 ------
@@ -195,7 +204,9 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.unpause_timers()
-    options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+    if options.current_timer then
+        options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+    end
 end
 
 ------
@@ -205,7 +216,7 @@ end
 function pom_timer.pom_default()
     options.is_work_session = true
     options.is_pom_timer = true
-    options.total_pom_count = 1
+    options.completed_pom_count = 1
     WORK_MIN = 25
     SMALL_BREAK_MIN = 5
     LARGE_BREAK_MIN = 15
@@ -220,7 +231,7 @@ function pom_timer.time_alert_at(time, show)
     options.is_work_session = false
     options.is_pom_timer = false
     new_time = time
-    if (hs.fnutils.split(time, " ")[2] == "pm") then
+    if (hs.fnutils.split(time, ' ')[2] == 'pm') then
         new_hour = tonumber(string.sub(time, 1, 2)) + 12
         new_time = new_hour .. string.sub(time, 3, 5)
     end

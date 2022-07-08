@@ -29,32 +29,11 @@ local LARGE_BREAK_MINUTES = 15
 -- @param s the string
 -- @return @{stdvars}
 local function update_menu_bar_text()
-    display_minutes = seconds_to_minutes(options.seconds_remaining)
-    display_seconds = options.seconds_remaining - minutes_to_seconds(display_minutes)
-    display_hours = minutes_to_hours(display_minutes)
-    menu_bar_text = ''
+    timer_text = get_timer_text(options.seconds_remaining)
+    pom_text = get_pom_text()
+    get_message_text = get_message_text()
 
-    if display_hours > 0 then
-        display_minutes = display_minutes - hours_to_minutes(display_hours)
-        menu_bar_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
-    else
-        menu_bar_text = string.format('%d:%02d', display_minutes, display_seconds)
-    end
-
-    if options.is_pom_timer then
-        if options.is_work_session then
-            menu_bar_text = menu_bar_text .. ' | ✎'
-        else
-            menu_bar_text = menu_bar_text .. ' | ☀'
-        end 
-        menu_bar_text = menu_bar_text .. ' ' .. (options.completed_pom_count)
-    end
-
-    if options.timer_message ~= '' then
-        menu_bar_text = menu_bar_text .. ' -' .. options.timer_message;
-    end
-
-    options.menu_bar_app:setTitle(menu_bar_text)
+    options.menu_bar_app:setTitle(imer_text .. pom_text .. _message_text)
 end
 
 ------
@@ -135,8 +114,57 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_create_menu(pom_origin)
-    if not options.menu_bar_app then
+    if options.menu_bar_app == nil then
         options.menu_bar_app = hs.menubar.new()
+    end
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function get_timer_text(seconds)
+    display_minutes = seconds_to_minutes(options.seconds_remaining)
+    display_seconds = options.seconds_remaining - minutes_to_seconds(display_minutes)
+    display_hours = minutes_to_hours(display_minutes)
+
+    if display_hours > 0 then
+        display_minutes = display_minutes - hours_to_minutes(display_hours)
+        timer_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
+    else
+        timer_text = string.format('%d:%02d', display_minutes, display_seconds)
+    end
+
+    return timer_text
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function get_pom_text()
+    if options.is_pom_timer then
+        if options.is_work_session then
+            pom_symbol = '✎'
+        else
+            pom_symbol = '☀'
+        end
+
+        return ' | ' .. pom_symbol .. ' ' .. options.completed_pom_count
+    else
+        return ''
+    end
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function get_message_text()
+    if options.timer_message ~= '' then
+        return ' - ' .. options.timer_message
+    else
+        return ''
     end
 end
 

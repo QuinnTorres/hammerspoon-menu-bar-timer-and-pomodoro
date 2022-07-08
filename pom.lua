@@ -25,9 +25,6 @@ local WORK_MINUTES = 25
 local SMALL_BREAK_MINUTES = 5
 local LARGE_BREAK_MINUTES = 15
 
-local SECONDS_PER_MINUTE = 60
-local MINUTES_PER_HOUR = 60
-
 ------
 -- extract standard variables.
 -- @param s the string
@@ -39,7 +36,7 @@ local function update_menu_bar_text()
     menu_bar_text = ''
 
     if (display_hours > 0) then
-        display_minutes = display_minutes - display_hours * MINUTES_PER_HOUR
+        display_minutes = display_minutes - hours_to_minutes(display_hours)
         menu_bar_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
     else
         menu_bar_text = string.format('%d:%02d', display_minutes, display_seconds)
@@ -173,9 +170,17 @@ end
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
+local function hours_to_minutes(hours)
+    return hours * 60
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
 function pom_timer.pom_enable(minutes, label)
     options.initial_minutes = minutes
-    options.seconds_remaining = minutes * SECONDS_PER_MINUTE
+    options.seconds_remaining = minutes_to_seconds(minutes)
     options.timer_message = label or ''
 
     pom_disable()
@@ -202,7 +207,7 @@ end
 -- @return @{stdvars}
 function pom_timer.jump_timer(minutes)
     if options.current_timer then
-        options.seconds_remaining = options.seconds_remaining - (minutes * SECONDS_PER_MINUTE)
+        options.seconds_remaining = options.seconds_remaining - minutes_to_seconds(minutes)
     end
 end
 
@@ -212,7 +217,7 @@ end
 -- @return @{stdvars}
 function pom_timer.back_timer(minutes)
     if options.current_timer then
-        options.seconds_remaining = options.seconds_remaining + (minutes * SECONDS_PER_MINUTE)
+        options.seconds_remaining = options.seconds_remaining + minutes_to_seconds(minutes)
     end
 end
 
@@ -263,6 +268,6 @@ function pom_timer.time_alert_at(time, show)
         new_time = new_hour .. string.sub(time, 3, 5)
     end
 
-    timer_length = (hs.timer.seconds(new_time) - hs.timer.localTime()) / SECONDS_PER_MINUTE
+    timer_length = seconds_to_minutes(hs.timer.seconds(new_time) - hs.timer.localTime())
     pom_enable(timer_length)
 end

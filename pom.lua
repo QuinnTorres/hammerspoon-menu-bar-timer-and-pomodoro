@@ -25,9 +25,7 @@ local SMALL_BREAK_MINUTES = 5
 local LARGE_BREAK_MINUTES = 15
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Update the text in the menu bar app with the current timer stats
 local function update_menu_bar_text()
     timer_text = get_timer_text(options.seconds_remaining)
     pom_text = get_pom_text()
@@ -37,16 +35,14 @@ local function update_menu_bar_text()
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function pom_disable()
+-- End the current timer and remove the menu bar app
+local function end_current_timer()
     if options.current_timer then
         options.current_timer:stop()
+        options.current_timer = nil
+
         options.menu_bar_app:delete()
         options.menu_bar_app = nil
-        options.current_timer:stop()
-        options.current_timer = nil
     end
 end
 
@@ -58,7 +54,7 @@ local function pom_update_time()
     options.seconds_remaining = options.seconds_remaining - 1
 
     if options.seconds_remaining <= 0 then
-        pom_disable()
+        end_current_timer()
 
         if options.is_pom_timer then
             if options.is_work_session then
@@ -209,7 +205,7 @@ function pom_timer.pom_enable(minutes, label)
     options.seconds_remaining = minutes_to_seconds(minutes)
     options.timer_message = label or ''
 
-    pom_disable()
+    end_current_timer()
 
     pom_create_menu()
     options.current_timer = hs.timer.doEvery(1, pom_update_menu)
@@ -220,7 +216,7 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.stop_timers()
-    pom_disable()
+    end_current_timer()
     options.is_work_session = false
     options.is_pom_timer = false
     options.completed_pom_count = 1

@@ -3,7 +3,6 @@
 -- A utility for menu bar timers and pomodoro timers, both of which can be
 -- paused, unpaused, added to, and subtracted from. Built in combination with
 -- Alfred: https://www.alfredapp.com 
-
 pom_timer = {}
 
 local options = {
@@ -35,24 +34,23 @@ local function update_menu_bar_text()
     display_hours = minutes_to_hours(display_minutes)
     menu_bar_text = ''
 
-    if (display_hours > 0) then
+    if display_hours > 0 then
         display_minutes = display_minutes - hours_to_minutes(display_hours)
         menu_bar_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
     else
         menu_bar_text = string.format('%d:%02d', display_minutes, display_seconds)
     end
 
-    if (options.is_work_session == true) then
-        menu_bar_text = menu_bar_text .. ' | ✎'
-    else
-        menu_bar_text = menu_bar_text .. ' | ☀'
-    end
-
-    if (options.is_pom_timer == true) then
+    if options.is_pom_timer then
+        if options.is_work_session then
+            menu_bar_text = menu_bar_text .. ' | ✎'
+        else
+            menu_bar_text = menu_bar_text .. ' | ☀'
+        end 
         menu_bar_text = menu_bar_text .. ' ' .. (options.completed_pom_count)
     end
 
-    if (options.timer_message ~= '') then
+    if options.timer_message ~= '' then
         menu_bar_text = menu_bar_text .. ' -' .. options.timer_message;
     end
 
@@ -64,7 +62,7 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_disable()
-    if (options.current_timer) then
+    if options.current_timer then
         options.current_timer:stop()
         options.menu_bar_app:delete()
         options.menu_bar_app = nil
@@ -80,12 +78,12 @@ end
 local function pom_update_time()
     options.seconds_remaining = options.seconds_remaining - 1
 
-    if (options.seconds_remaining <= 0) then
+    if options.seconds_remaining <= 0 then
         pom_disable()
 
-        if (options.is_pom_timer) then
-            if (options.is_work_session == true) then
-                if (options.completed_pom_count % 4 == 0) then
+        if options.is_pom_timer then
+            if options.is_work_session then
+                if options.completed_pom_count % 4 == 0 then
                     hs.notify.new({
                         title = string.format('%.2f', options.initial_minutes) .. ' work minutes are over',
                         subTitle = 'Starting ' .. string.format('%.2f', LARGE_BREAK_MINUTES) ..
@@ -137,7 +135,7 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_create_menu(pom_origin)
-    if options.menu_bar_app == nil then
+    if not options.menu_bar_app then
         options.menu_bar_app = hs.menubar.new()
     end
 end
@@ -263,7 +261,7 @@ function pom_timer.time_alert_at(time, show)
     options.is_work_session = false
     options.is_pom_timer = false
     new_time = time
-    if (hs.fnutils.split(time, ' ')[2] == 'pm') then
+    if hs.fnutils.split(time, ' ')[2] == 'pm' then
         new_hour = tonumber(string.sub(time, 1, 2)) + 12
         new_time = new_hour .. string.sub(time, 3, 5)
     end

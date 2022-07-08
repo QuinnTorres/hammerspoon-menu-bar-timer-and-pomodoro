@@ -9,11 +9,11 @@ pom_timer = {}
 local options = {
     current_timer = nil,
     initial_min = 0,
-    sec_remaining = 20 * 60,
+    sec_remaining = 0,
     timer_message = '',
-    is_work_timer = false,
+    is_work_session = false,
     is_pom_timer = false,
-    total_pom_count = 1
+    total_pom_count = 0
 }
 
 local WORK_MIN = 25
@@ -38,7 +38,7 @@ local function pom_update_display()
             str = string.format("%d:%02d", time_min, time_sec)
         end
 
-        if (options.is_work_timer == true) then
+        if (options.is_work_session == true) then
             str = str .. " | ✎"
         else
             str = str .. " | ☀"
@@ -81,7 +81,7 @@ local function pom_update_time()
         pom_disable()
 
         if (options.is_pom_timer) then
-            if (options.is_work_timer == true) then
+            if (options.is_work_session == true) then
                 if (options.total_pom_count % 4 == 0) then
                     hs.notify.new({
                         title = string.format("%.2f", options.initial_min) .. " work minutes are over",
@@ -89,7 +89,7 @@ local function pom_update_time()
                             " minute big break timer",
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
-                    options.is_work_timer = false
+                    options.is_work_session = false
                     pom_enable(LARGE_BREAK_MIN)
                 else
                     hs.notify.new({
@@ -97,7 +97,7 @@ local function pom_update_time()
                         subTitle = "Starting " .. string.format("%.2f", SMALL_BREAK_MIN) .. " minute break timer",
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
-                    options.is_work_timer = false
+                    options.is_work_session = false
                     pom_enable(SMALL_BREAK_MIN)
                 end
             else
@@ -108,7 +108,7 @@ local function pom_update_time()
                     subTitle = "Starting " .. string.format("%.2f", WORK_MIN) .. " minute work timer",
                     soundName = hs.notify.defaultNotificationSound
                 }):send()
-                options.is_work_timer = true
+                options.is_work_session = true
                 pom_enable(WORK_MIN)
             end
         else
@@ -160,7 +160,7 @@ end
 -- @return @{stdvars}
 function pom_timer.stop_timers()
     pom_disable()
-    options.is_work_timer = false
+    options.is_work_session = false
     options.is_pom_timer = false
     options.total_pom_count = 1
     options.timer_message = ''
@@ -203,7 +203,7 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.pom_default()
-    options.is_work_timer = true
+    options.is_work_session = true
     options.is_pom_timer = true
     options.total_pom_count = 1
     WORK_MIN = 25
@@ -217,7 +217,7 @@ end
 -- @param s the string
 -- @return @{stdvars}
 function pom_timer.time_alert_at(time, show)
-    options.is_work_timer = false
+    options.is_work_session = false
     options.is_pom_timer = false
     new_time = time
     if (hs.fnutils.split(time, " ")[2] == "pm") then

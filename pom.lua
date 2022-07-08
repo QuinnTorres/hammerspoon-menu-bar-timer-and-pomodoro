@@ -126,9 +126,8 @@ local function get_timer_text(seconds)
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Get the pomodoro session icon and completed session counter text
+-- @return the summary of the current pomodoro session in text form
 local function get_pom_text()
     if options.is_pom_timer then
         if options.is_work_session then

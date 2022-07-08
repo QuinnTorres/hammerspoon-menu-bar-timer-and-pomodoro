@@ -1,254 +1,292 @@
-  -----------------------------------------------------------------------------------------
-  -- menu bar timer
-  -- Timer variables
-  
-  pom_timer = nil
-  
-  local pom={}
-  
-  pom.var = {
-    is_active        = false,
-    time_left        = 20*60,
-    starting_time    = 0,
-    is_work          = false,
-    is_break         = false,
-    is_pom           = false,
-    work_time        = 0,
-    break_time       = 0,
-    big_break_time   = 0,
-    pom_count        = 1,
-    message          = ''
-  }
-  
-  -- update display
-  local function pom_update_display()
-    if(pom_menu) then
-      local str = ""
-      local time_min = math.floor( (pom.var.time_left / 60))
-      local time_sec = pom.var.time_left - (time_min * 60)
-  
-      if(time_min >= 60) then
-        local time_hour = math.floor(time_min/60)
-        time_min = time_min - time_hour*60
-        str = string.format("%d:%02d:%02d", time_hour, time_min, time_sec)
-      else
-        str = string.format("%d:%02d", time_min, time_sec)
-      end
-  
-      if (pom.var.is_work == true) then
-        str = str.." | ✎"
-      else
-        if (pom.var.is_break == true) then
-          str = str.." | ☀"
-        end
-      end
-  
-      if (pom.var.is_pom == true) then
-        str = str.." "..(pom.var.pom_count)
-      end
-  
-      if (pom.var.message ~= '') then
-        str = str.." -"..pom.var.message;
-      end
-  
-      pom_menu:setTitle(str)
-    end
-  end
-  
-  -- stop the clock
-  function pom_disable()
-    local pom_was_active = pom.var.is_active
-    pom.var.is_active = false
-    if (pom_timer) then
-        pom_timer:stop()
-        pom_menu:delete()
-      pom_menu = nil
-      pom_timer:stop()
-      pom_timer = nil
-    end
-  end
-  
-  -- update pomodoro timer
-  local function pom_update_time()
-    if pom.var.is_active == false then
-      return
-    else
-      pom.var.time_left = pom.var.time_left - 1
-  
-      if (pom.var.time_left <= 0 ) then
-        pom_disable()
-        if (pom.var.is_work == true) then
-          if (pom.var.is_pom == true) then
-            if (pom.var.pom_count % 4 == 0) then
-              hs.notify.new({title=string.format("%.2f", pom.var.starting_time).." work minutes are over", subTitle="Starting "..string.format("%.2f", pom.var.big_break_time).." minute big break timer", soundName=hs.notify.defaultNotificationSound}):send()
-              pom.var.is_work = false
-              pom.var.is_break = true
-              pom_enable(pom.var.big_break_time)
-            else
-              hs.notify.new({title=string.format("%.2f", pom.var.starting_time).." work minutes are over", subTitle="Starting "..string.format("%.2f", pom.var.break_time).." minute break timer", soundName=hs.notify.defaultNotificationSound}):send()
-              pom.var.is_work = false
-              pom.var.is_break = true
-              pom_enable(pom.var.break_time)
-            end
-          else
-            hs.notify.new({title=string.format("%.2f", pom.var.starting_time).." work minutes are over", subTitle="Starting "..string.format("%.2f", pom.var.break_time).." minute break timer", soundName=hs.notify.defaultNotificationSound}):send()
-            pom.var.is_work = false
-            pom.var.is_break = true
-            pom_enable(pom.var.break_time)
-          end
+-- hs.pom_timer
+--
+-- A utility for menu bar timers and pomodoro timers, both of which can be
+-- paused, unpaused, added to, and subtracted from. Built in combination with
+-- Alfred: https://www.alfredapp.com 
+
+local pom_timer = {}
+
+local options = {
+    current_timer = nil,
+    initial_min = 0,
+    sec_remaining = 20 * 60,
+    timer_message = '',
+    is_running = false,
+    is_work_timer = false,
+    is_break_timer = false,
+    is_pom_timer = false,
+    total_pom_count = 1
+}
+
+local WORK_MIN = 25
+local SMALL_BREAK_MIN = 5
+local LARGE_BREAK_MIN = 15
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function pom_update_display()
+    if (pom_menu) then
+        local str = ""
+        local time_min = math.floor((options.sec_remaining / 60))
+        local time_sec = options.sec_remaining - (time_min * 60)
+
+        if (time_min >= 60) then
+            local time_hour = math.floor(time_min / 60)
+            time_min = time_min - time_hour * 60
+            str = string.format("%d:%02d:%02d", time_hour, time_min, time_sec)
         else
-          if (pom.var.is_break == true) then
-            if (pom.var.is_pom == true) then
-              pom.var.pom_count = pom.var.pom_count + 1
-            end
-  
-            hs.notify.new({title=string.format("%.2f", pom.var.starting_time).." break minutes are over", subTitle="Starting "..string.format("%.2f", pom.var.work_time).." minute work timer", soundName=hs.notify.defaultNotificationSound}):send()
-            pom.var.is_work = true
-            pom.var.is_break = false
-            pom_enable(pom.var.work_time)
-          else
-            hs.notify.new({title=string.format("%.2f", pom.var.starting_time).." minutes are over", soundName=hs.notify.defaultNotificationSound}):send()
-          end
+            str = string.format("%d:%02d", time_min, time_sec)
         end
-      end
+
+        if (options.is_work_timer == true) then
+            str = str .. " | ✎"
+        else
+            if (options.is_break_timer == true) then
+                str = str .. " | ☀"
+            end
+        end
+
+        if (options.is_pom_timer == true) then
+            str = str .. " " .. (options.total_pom_count)
+        end
+
+        if (options.timer_message ~= '') then
+            str = str .. " -" .. options.timer_message;
+        end
+
+        pom_menu:setTitle(str)
     end
-  end
-  
-  -- update menu display
-  local function pom_update_menu()
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function pom_disable()
+    local pom_was_active = options.is_running
+    options.is_running = false
+    if (options.current_timer) then
+        options.current_timer:stop()
+        pom_menu:delete()
+        pom_menu = nil
+        options.current_timer:stop()
+        options.current_timer = nil
+    end
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function pom_update_time()
+    if options.is_running == false then
+        return
+    else
+        options.sec_remaining = options.sec_remaining - 1
+
+        if (options.sec_remaining <= 0) then
+            pom_disable()
+            if (options.is_work_timer == true) then
+                if (options.is_pom_timer == true) then
+                    if (options.total_pom_count % 4 == 0) then
+                        hs.notify.new({
+                            title = string.format("%.2f", options.initial_min) .. " work minutes are over",
+                            subTitle = "Starting " .. string.format("%.2f", LARGE_BREAK_MIN) ..
+                                " minute big break timer",
+                            soundName = hs.notify.defaultNotificationSound
+                        }):send()
+                        options.is_work_timer = false
+                        options.is_break_timer = true
+                        pom_enable(LARGE_BREAK_MIN)
+                    else
+                        hs.notify.new({
+                            title = string.format("%.2f", options.initial_min) .. " work minutes are over",
+                            subTitle = "Starting " .. string.format("%.2f", SMALL_BREAK_MIN) .. " minute break timer",
+                            soundName = hs.notify.defaultNotificationSound
+                        }):send()
+                        options.is_work_timer = false
+                        options.is_break_timer = true
+                        pom_enable(SMALL_BREAK_MIN)
+                    end
+                end
+            else
+                if (options.is_break_timer == true) then
+                    if (options.is_pom_timer == true) then
+                        options.total_pom_count = options.total_pom_count + 1
+                    end
+
+                    hs.notify.new({
+                        title = string.format("%.2f", options.initial_min) .. " break minutes are over",
+                        subTitle = "Starting " .. string.format("%.2f", WORK_MIN) .. " minute work timer",
+                        soundName = hs.notify.defaultNotificationSound
+                    }):send()
+                    options.is_work_timer = true
+                    options.is_break_timer = false
+                    pom_enable(WORK_MIN)
+                else
+                    hs.notify.new({
+                        title = string.format("%.2f", options.initial_min) .. " minutes are over",
+                        soundName = hs.notify.defaultNotificationSound
+                    }):send()
+                end
+            end
+        end
+    end
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function pom_update_menu()
     pom_update_time()
     pom_update_display()
-  end
-  
-  -- create menu display
-  local function pom_create_menu(pom_origin)
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function pom_create_menu(pom_origin)
     if pom_menu == nil then
-      pom_menu = hs.menubar.new()
+        pom_menu = hs.menubar.new()
     end
-  end
-  
-  -- start the pomodoro timer
-  function pom_enable(minutes)
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function mysplit(inputstr, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.pom_enable(minutes)
     local args = mysplit(minutes, " ");
     local countdownMinutes = tonumber(args[1]);
     local label = '';
-  
-    pom.var.time_left = countdownMinutes*60;
-    pom.var.starting_time = countdownMinutes;
-  
+
+    options.sec_remaining = countdownMinutes * 60;
+    options.initial_min = countdownMinutes;
+
     if (args[2] ~= nil) then
-      for key, value in pairs(args) do
-        if (key > 1) then
-          label = label.." "..value;
+        for key, value in pairs(args) do
+            if (key > 1) then
+                label = label .. " " .. value;
+            end
         end
-      end
-  
-      pom.var.message = label;
+
+        options.timer_message = label;
     end
-  
+
     pom_disable()
-  
+
     pom_create_menu()
-    pom_timer = hs.timer.doEvery(1, pom_update_menu)
-  
-    pom.var.is_active = true
-  end
-  -----------------------------------------------------------------------------------------------
-  
-  -----------------------------------------------------------------------------------------------
-  -- pause, unpause, and jump timers
-  
-  function stop_timers()
+    options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+
+    options.is_running = true
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.stop_timers()
     pom_disable()
-    pom.var.is_work = false
-    pom.var.is_break = false
-    pom.var.is_pom = false
-    pom.var.pom_count = 1
-    pom.var.message = ''
-  end
-  
-  function jump_timer(minutes)
-    pom.var.time_left = pom.var.time_left - (minutes * 60)
-  end
-  
-  function back_timer(minutes)
-    pom.var.time_left = pom.var.time_left + (minutes * 60)
-  end
-  
-  function pause_timers()
-    if(pom.var.is_active) then
-      pom_timer:stop()
-      pom.var.is_active = false
+    options.is_work_timer = false
+    options.is_break_timer = false
+    options.is_pom_timer = false
+    options.total_pom_count = 1
+    options.timer_message = ''
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.jump_timer(minutes)
+    options.sec_remaining = options.sec_remaining - (minutes * 60)
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.back_timer(minutes)
+    options.sec_remaining = options.sec_remaining + (minutes * 60)
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.pause_timers()
+    if (options.is_running) then
+        options.current_timer:stop()
+        options.is_running = false
     end
-  end
-  
-  function unpause_timers()
-    if (not pom.var.is_active) then
-      pom_timer = hs.timer.doEvery(1, pom_update_menu)
-      pom.var.is_active = true
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.unpause_timers()
+    if (not options.is_running) then
+        options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+        options.is_running = true
     end
-  end
-  -----------------------------------------------------------------------------------------------
-  
-  -----------------------------------------------------------------------------------------------
-  -- work timer
-  
-  function work(minutes)
-    pom.var.is_work = true
-    pom.var.is_break = false
-    pom.var.is_pom = false
-    pom.var.work_time = minutes
-    pom.var.break_time = minutes / 3
-    pom_enable(minutes)
-  end
-  
-  function pom_default()
-    pom.var.is_work = true
-    pom.var.is_break = false
-    pom.var.is_pom = true
-    pom.var.pom_count = 1
-    pom.var.work_time = 25
-    pom.var.break_time = 5
-    pom.var.big_break_time = 15
-    pom_enable(pom.var.work_time)
-  end
-  -----------------------------------------------------------------------------------------------
-  
-  -----------------------------------------------------------------------------------------------
-  -- timer (menu bar) until a certain time
-  
-  function time_alert_at(time, show)
-    pom.var.is_work = false
-    pom.var.is_break = false
-    pom.var.is_pom = false
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.pom_default()
+    options.is_work_timer = true
+    options.is_break_timer = false
+    options.is_pom_timer = true
+    options.total_pom_count = 1
+    WORK_MIN = 25
+    SMALL_BREAK_MIN = 5
+    LARGE_BREAK_MIN = 15
+    pom_enable(WORK_MIN)
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+function pom_timer.time_alert_at(time, show)
+    options.is_work_timer = false
+    options.is_break_timer = false
+    options.is_pom_timer = false
     new_time = time
     if (hs.fnutils.split(time, " ")[2] == "pm") then
-      new_hour = tonumber(string.sub(time,1,2)) + 12
-      new_time = new_hour .. string.sub(time,3,5)
+        new_hour = tonumber(string.sub(time, 1, 2)) + 12
+        new_time = new_hour .. string.sub(time, 3, 5)
     end
-  
+
     alert_time = hs.timer.seconds(new_time)
     current_time = hs.timer.localTime()
     time_length = alert_time - current_time
-    minutes_until_alert = time_length/60
+    minutes_until_alert = time_length / 60
     if (show) then
-      timer_indicator(minutes_until_alert)
+        timer_indicator(minutes_until_alert)
     else
-      pom_enable(minutes_until_alert)
+        pom_enable(minutes_until_alert)
     end
-  end
-  -----------------------------------------------------------------------------------------------
-  
-  -----------------------------------------------------------------------------------------------
-  -- utilities
-  function mysplit(inputstr, sep)
-          if sep == nil then
-                  sep = "%s"
-          end
-          local t={}
-          for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-                  table.insert(t, str)
-          end
-          return t
-  end
-  -----------------------------------------------------------------------------------------------
+end

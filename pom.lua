@@ -1,3 +1,4 @@
+------
 -- hs.pom_timer
 --
 -- A utility for menu bar timers and pomodoro timers, both of which can be
@@ -16,6 +17,7 @@ local options = {
     completed_pom_count = 0 -- Total number of pomodoros completed
 }
 
+------
 -- Default pomodoro timings
 -- Work session: 25 minutes
 -- Small break session: 5 minutes
@@ -23,6 +25,9 @@ local options = {
 local WORK_MINUTES = 25
 local SMALL_BREAK_MINUTES = 5
 local LARGE_BREAK_MINUTES = 15
+
+local WORK_LABEL = 'work'
+local BREAK_LABEL = 'break'
 
 ------
 -- Update the text in the menu bar app with the current timer stats
@@ -47,52 +52,50 @@ local function end_current_timer()
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Decrease the seconds remaining on the timer by 1 and start a new one if
+-- necessary
 local function pom_update_time()
     options.seconds_remaining = options.seconds_remaining - 1
 
     if options.seconds_remaining <= 0 then
         end_current_timer()
+        set_next_timer()
+    end
+end
 
-        if options.is_pom_timer then
-            if options.is_work_session then
-                if options.completed_pom_count % 4 == 0 then
-                    hs.notify.new({
-                        title = string.format('%.2f', options.initial_minutes) .. ' work minutes are over',
-                        subTitle = 'Starting ' .. string.format('%.2f', LARGE_BREAK_MINUTES) ..
-                            ' minute big break timer',
-                        soundName = hs.notify.defaultNotificationSound
-                    }):send()
-                    options.is_work_session = false
-                    pom_enable(LARGE_BREAK_MINUTES)
-                else
-                    hs.notify.new({
-                        title = string.format('%.2f', options.initial_minutes) .. ' work minutes are over',
-                        subTitle = 'Starting ' .. string.format('%.2f', SMALL_BREAK_MINUTES) .. ' minute break timer',
-                        soundName = hs.notify.defaultNotificationSound
-                    }):send()
-                    options.is_work_session = false
-                    pom_enable(SMALL_BREAK_MINUTES)
-                end
+local function set_next_timer()
+    next_timer_minutes = 0
+
+    if options.is_pom_timer then
+        if options.is_work_session then
+            should_start_large_break = options.completed_pom_count % 4 == 0
+            options.is_work_session = false
+
+            if should_start_large_break then
+                next_timer_minutes = LARGE_BREAK_MINUTES
             else
-                options.completed_pom_count = options.completed_pom_count + 1
-
-                hs.notify.new({
-                    title = string.format('%.2f', options.initial_minutes) .. ' break minutes are over',
-                    subTitle = 'Starting ' .. string.format('%.2f', WORK_MINUTES) .. ' minute work timer',
-                    soundName = hs.notify.defaultNotificationSound
-                }):send()
-                options.is_work_session = true
-                pom_enable(WORK_MINUTES)
+                next_timer_minutes = SMALL_BREAK_MINUTES
             end
+
+            send_timer_notification(options.initial_minutes, next_timer_minutes, true)
         else
+            options.completed_pom_count = options.completed_pom_count + 1
+            next_timer_minutes = WORK_MINUTES
+            options.is_work_session = true
+
             hs.notify.new({
-                title = string.format('%.2f', options.initial_minutes) .. ' minutes are over',
+                title = string.format('%.2f', options.initial_minutes) .. ' break minutes are over',
+                subTitle = 'Starting ' .. string.format('%.2f', WORK_MINUTES) .. ' minute work timer',
                 soundName = hs.notify.defaultNotificationSound
             }):send()
         end
+
+        pom_enable(next_timer_minutes)
+    else
+        hs.notify.new({
+            title = string.format('%.2f', options.initial_minutes) .. ' minutes are over',
+            soundName = hs.notify.defaultNotificationSound
+        }):send()
     end
 end
 
@@ -162,6 +165,37 @@ local function get_message_text()
     else
         return ''
     end
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function send_timer_notification(initial_minutes, next_session_minutes, is_work)
+    title = ''
+    sub_title = ''
+    session_label = ''
+    next_session_label = ''
+
+    if is_work then
+        session_label = WORK_LABEL
+        next_session_label = BREAK_LABEL
+    else
+        session_label = BREAK_LABEL
+        next_session_label = WORK_LABEL
+    end
+
+    title = string.format('%.2f', initial_minutes) .. ' ' .. session_label .. ' minutes are over'
+
+    if next_session_minutes then
+        sub_title = 'Starting ' .. string.format('%.2f', next_session_minutes) .. ' minute ' .. next_session_label .. ' timer'
+    end
+
+    hs.notify.new({
+        title = title,
+        subTitle = sub_title,
+        soundName = hs.notify.defaultNotificationSound
+    }):send()
 end
 
 ------

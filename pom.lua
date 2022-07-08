@@ -65,7 +65,7 @@ end
 
 ------
 -- Decrease the seconds remaining on the timer by 1 and start a new one if necessary
-local function pom_update_time()
+local function update_current_timer()
     options.seconds_remaining = options.seconds_remaining - 1
 
     if options.seconds_remaining <= 0 then
@@ -101,11 +101,9 @@ local function notify_and_set_next_timer()
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
-local function pom_update_menu()
-    pom_update_time()
+-- Update the timer seconds and the display of it in the menu bar
+local function update_timer()
+    update_current_timer()
     update_menu_bar_text()
 end
 
@@ -251,7 +249,7 @@ local function start_timer(minutes, label)
     end_current_timer()
 
     pom_create_menu()
-    options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+    options.current_timer = hs.timer.doEvery(1, update_timer)
 end
 
 ------
@@ -302,7 +300,7 @@ end
 -- @return @{stdvars}
 local function unpause_timer()
     if options.current_timer then
-        options.current_timer = hs.timer.doEvery(1, pom_update_menu)
+        options.current_timer = hs.timer.doEvery(1, update_timer)
     end
 end
 

@@ -180,9 +180,10 @@ local function send_timer_notification(initial_minutes, next_session_minutes, is
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Calculate the session labels to be used in the timer notification
+-- @param next_session_minutes the minutes to set for the next timer, 0 if there is no next timer
+-- @param is_work if the current timer is a pomodoro work session
+-- @return the title and subtitle labels in an array, in that order
 local function get_session_labels(next_session_minutes, is_work)
     if next_session_minutes == 0 then
         return {session_label, next_session_label}

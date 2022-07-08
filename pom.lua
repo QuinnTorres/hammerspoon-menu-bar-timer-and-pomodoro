@@ -38,8 +38,8 @@ local SMALL_BREAK_MINUTES = 5
 local LARGE_BREAK_MINUTES = 15
 local POMS_UNTIL_LARGE_BREAK = 4
 
-local WORK_LABEL = 'work'
-local BREAK_LABEL = 'break'
+local WORK_LABEL = ' work'
+local BREAK_LABEL = ' break'
 
 ------
 -- Update the text in the menu bar app with the current timer stats
@@ -154,30 +154,17 @@ local function get_message_text()
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Notify the end of the current timer and the start of the next work
+-- @param initial_minutes how many minutes the current timer was set for
+-- @param next_session_minutes how many minutes the next timer will be set for
+-- @param is_work true if the current timer is a pomodoro work session
 local function send_timer_notification(initial_minutes, next_session_minutes, is_work)
     title = ''
     sub_title = ''
-    session_label = ''
-    next_session_label = ''
 
-    if next_session_minutes == 0 then
-        session_label = ''
-        next_session_label = ''
-    else
-        if is_work then
-            session_label = WORK_LABEL
-            next_session_label = BREAK_LABEL
-        else
-            session_label = BREAK_LABEL
-            next_session_label = WORK_LABEL
-        end
-
-        session_label = ' ' .. session_label
-        next_session_label = ' ' .. next_session_label
-    end
+    session_labels = get_session_labels(next_session_minutes, is_work)
+    session_label = session_labels[1]
+    next_session_label = session_labels[2]
 
     title = string.format('%.2f', initial_minutes) .. session_label .. ' minutes are over'
 
@@ -190,6 +177,22 @@ local function send_timer_notification(initial_minutes, next_session_minutes, is
         subTitle = sub_title,
         soundName = hs.notify.defaultNotificationSound
     }):send()
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function get_session_labels(next_session_minutes, is_work)
+    if next_session_minutes == 0 then
+        return {session_label, next_session_label}
+    else
+        if is_work then
+            return {WORK_LABEL, BREAK_LABEL}
+        else
+            return {BREAK_LABEL, WORK_LABEL}
+        end
+    end
 end
 
 ------

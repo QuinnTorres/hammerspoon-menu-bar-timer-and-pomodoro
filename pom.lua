@@ -108,22 +108,21 @@ local function update_timer()
 end
 
 ------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
+-- Convert a set of seconds into a timer-friendly display
+-- @param seconds the amount of seconds to convert into a timer display
+-- @return the timer-friendly string display of the seconds
 local function get_timer_text(seconds)
     display_minutes = seconds_to_minutes(options.seconds_remaining)
     display_seconds = options.seconds_remaining - minutes_to_seconds(display_minutes)
     display_hours = minutes_to_hours(display_minutes)
 
     if display_hours > 0 then
-        display_minutes = display_minutes - hours_to_minutes(display_hours)
-        timer_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
-    else
-        timer_text = string.format('%d:%02d', display_minutes, display_seconds)
-    end
+        display_minutes = display_minutes % hours_to_minutes(display_hours)
 
-    return timer_text
+        return string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
+    else
+        return string.format('%d:%02d', display_minutes, display_seconds)
+    end
 end
 
 ------

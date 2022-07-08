@@ -4,7 +4,7 @@
 -- paused, unpaused, added to, and subtracted from. Built in combination with
 -- Alfred: https://www.alfredapp.com 
 
-local pom_timer = {}
+pom_timer = {}
 
 local options = {
     current_timer = nil,
@@ -28,12 +28,12 @@ local LARGE_BREAK_MIN = 15
 -- @return @{stdvars}
 local function pom_update_display()
     if (pom_menu) then
-        local str = ""
-        local time_min = math.floor((options.sec_remaining / 60))
-        local time_sec = options.sec_remaining - (time_min * 60)
+        str = ""
+        time_min = math.floor((options.sec_remaining / 60))
+        time_sec = options.sec_remaining - (time_min * 60)
 
         if (time_min >= 60) then
-            local time_hour = math.floor(time_min / 60)
+            time_hour = math.floor(time_min / 60)
             time_min = time_min - time_hour * 60
             str = string.format("%d:%02d:%02d", time_hour, time_min, time_sec)
         else
@@ -65,8 +65,9 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_disable()
-    local pom_was_active = options.is_running
+    pom_was_active = options.is_running
     options.is_running = false
+
     if (options.current_timer) then
         options.current_timer:stop()
         pom_menu:delete()
@@ -163,10 +164,13 @@ local function mysplit(inputstr, sep)
     if sep == nil then
         sep = "%s"
     end
-    local t = {}
+
+    t = {}
+
     for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
         table.insert(t, str)
     end
+
     return t
 end
 
@@ -174,10 +178,10 @@ end
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
-function pom_timer.pom_enable(minutes)
-    local args = mysplit(minutes, " ");
-    local countdownMinutes = tonumber(args[1]);
-    local label = '';
+function pom_timer.pom_enable(minutes, label)
+    args = mysplit(minutes, " ");
+    countdownMinutes = tonumber(args[1]);
+    label = label or '';
 
     options.sec_remaining = countdownMinutes * 60;
     options.initial_min = countdownMinutes;

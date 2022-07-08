@@ -160,41 +160,10 @@ end
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
-local function mysplit(inputstr, sep)
-    if sep == nil then
-        sep = "%s"
-    end
-
-    t = {}
-
-    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
-        table.insert(t, str)
-    end
-
-    return t
-end
-
-------
--- extract standard variables.
--- @param s the string
--- @return @{stdvars}
 function pom_timer.pom_enable(minutes, label)
-    args = mysplit(minutes, " ");
-    countdownMinutes = tonumber(args[1]);
-    label = label or '';
-
-    options.sec_remaining = countdownMinutes * 60;
-    options.initial_min = countdownMinutes;
-
-    if (args[2] ~= nil) then
-        for key, value in pairs(args) do
-            if (key > 1) then
-                label = label .. " " .. value;
-            end
-        end
-
-        options.timer_message = label;
-    end
+    options.initial_min = minutes
+    options.sec_remaining = minutes * 60
+    options.timer_message = label or ''
 
     pom_disable()
 

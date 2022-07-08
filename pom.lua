@@ -9,8 +9,8 @@ pom_timer = {}
 local options = {
     current_timer = nil, -- Hammerspoon timer instance
     menu_bar_app = nil, -- Hammerspoon menu bar instance
-    initial_min = 0, -- Minutes set for the current timer
-    sec_remaining = 0, -- Seconds left until the current timer is done
+    initial_minutes = 0, -- Minutes set for the current timer
+    seconds_remaining = 0, -- Seconds left until the current timer is done
     timer_message = '', -- Optional message to show to the side of the timer
     is_work_session = false, -- If the current timer is a pomodoro work session
     is_pom_timer = false, -- If the current timer is a pomodoro timer
@@ -21,25 +21,28 @@ local options = {
 -- Work session: 25 minutes
 -- Small break session: 5 minutes
 -- Large break session: 15 minutes
-local WORK_MIN = 25
-local SMALL_BREAK_MIN = 5
-local LARGE_BREAK_MIN = 15
+local WORK_MINUTES = 25
+local SMALL_BREAK_MINUTES = 5
+local LARGE_BREAK_MINUTES = 15
+
+local SECONDS_PER_MINUTE = 60
+local MINUTES_PER_HOUR = 60
 
 ------
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
-local function pom_update_display()
+local function update_menu_bar_text()
+    display_minutes = seconds_to_minutes(options.seconds_remaining)
+    display_seconds = options.seconds_remaining - minutes_to_seconds(display_minutes)
+    display_hours = minutes_to_hours(display_minutes)
     menu_bar_text = ''
-    time_min = math.floor((options.sec_remaining / 60))
-    time_sec = options.sec_remaining - (time_min * 60)
 
-    if (time_min >= 60) then
-        time_hour = math.floor(time_min / 60)
-        time_min = time_min - time_hour * 60
-        menu_bar_text = string.format('%d:%02d:%02d', time_hour, time_min, time_sec)
+    if (display_hours > 0) then
+        display_minutes = display_minutes - display_hours * MINUTES_PER_HOUR
+        menu_bar_text = string.format('%d:%02d:%02d', display_hours, display_minutes, display_seconds)
     else
-        menu_bar_text = string.format('%d:%02d', time_min, time_sec)
+        menu_bar_text = string.format('%d:%02d', display_minutes, display_seconds)
     end
 
     if (options.is_work_session == true) then
@@ -78,45 +81,45 @@ end
 -- @param s the string
 -- @return @{stdvars}
 local function pom_update_time()
-    options.sec_remaining = options.sec_remaining - 1
+    options.seconds_remaining = options.seconds_remaining - 1
 
-    if (options.sec_remaining <= 0) then
+    if (options.seconds_remaining <= 0) then
         pom_disable()
 
         if (options.is_pom_timer) then
             if (options.is_work_session == true) then
                 if (options.completed_pom_count % 4 == 0) then
                     hs.notify.new({
-                        title = string.format('%.2f', options.initial_min) .. ' work minutes are over',
-                        subTitle = 'Starting ' .. string.format('%.2f', LARGE_BREAK_MIN) ..
+                        title = string.format('%.2f', options.initial_minutes) .. ' work minutes are over',
+                        subTitle = 'Starting ' .. string.format('%.2f', LARGE_BREAK_MINUTES) ..
                             ' minute big break timer',
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
                     options.is_work_session = false
-                    pom_enable(LARGE_BREAK_MIN)
+                    pom_enable(LARGE_BREAK_MINUTES)
                 else
                     hs.notify.new({
-                        title = string.format('%.2f', options.initial_min) .. ' work minutes are over',
-                        subTitle = 'Starting ' .. string.format('%.2f', SMALL_BREAK_MIN) .. ' minute break timer',
+                        title = string.format('%.2f', options.initial_minutes) .. ' work minutes are over',
+                        subTitle = 'Starting ' .. string.format('%.2f', SMALL_BREAK_MINUTES) .. ' minute break timer',
                         soundName = hs.notify.defaultNotificationSound
                     }):send()
                     options.is_work_session = false
-                    pom_enable(SMALL_BREAK_MIN)
+                    pom_enable(SMALL_BREAK_MINUTES)
                 end
             else
                 options.completed_pom_count = options.completed_pom_count + 1
 
                 hs.notify.new({
-                    title = string.format('%.2f', options.initial_min) .. ' break minutes are over',
-                    subTitle = 'Starting ' .. string.format('%.2f', WORK_MIN) .. ' minute work timer',
+                    title = string.format('%.2f', options.initial_minutes) .. ' break minutes are over',
+                    subTitle = 'Starting ' .. string.format('%.2f', WORK_MINUTES) .. ' minute work timer',
                     soundName = hs.notify.defaultNotificationSound
                 }):send()
                 options.is_work_session = true
-                pom_enable(WORK_MIN)
+                pom_enable(WORK_MINUTES)
             end
         else
             hs.notify.new({
-                title = string.format('%.2f', options.initial_min) .. ' minutes are over',
+                title = string.format('%.2f', options.initial_minutes) .. ' minutes are over',
                 soundName = hs.notify.defaultNotificationSound
             }):send()
         end
@@ -129,7 +132,7 @@ end
 -- @return @{stdvars}
 local function pom_update_menu()
     pom_update_time()
-    pom_update_display()
+    update_menu_bar_text()
 end
 
 ------
@@ -146,9 +149,33 @@ end
 -- extract standard variables.
 -- @param s the string
 -- @return @{stdvars}
+local function minutes_to_hours(minutes)
+    return math.floor((minutes / 60))
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function seconds_to_minutes(seconds)
+    return math.floor((seconds / 60))
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
+local function minutes_to_seconds(minutes)
+    return minutes * 60
+end
+
+------
+-- extract standard variables.
+-- @param s the string
+-- @return @{stdvars}
 function pom_timer.pom_enable(minutes, label)
-    options.initial_min = minutes
-    options.sec_remaining = minutes * 60
+    options.initial_minutes = minutes
+    options.seconds_remaining = minutes * SECONDS_PER_MINUTE
     options.timer_message = label or ''
 
     pom_disable()
@@ -175,7 +202,7 @@ end
 -- @return @{stdvars}
 function pom_timer.jump_timer(minutes)
     if options.current_timer then
-        options.sec_remaining = options.sec_remaining - (minutes * 60)
+        options.seconds_remaining = options.seconds_remaining - (minutes * SECONDS_PER_MINUTE)
     end
 end
 
@@ -185,7 +212,7 @@ end
 -- @return @{stdvars}
 function pom_timer.back_timer(minutes)
     if options.current_timer then
-        options.sec_remaining = options.sec_remaining + (minutes * 60)
+        options.seconds_remaining = options.seconds_remaining + (minutes * SECONDS_PER_MINUTE)
     end
 end
 
@@ -217,10 +244,10 @@ function pom_timer.pom_default()
     options.is_work_session = true
     options.is_pom_timer = true
     options.completed_pom_count = 1
-    WORK_MIN = 25
-    SMALL_BREAK_MIN = 5
-    LARGE_BREAK_MIN = 15
-    pom_enable(WORK_MIN)
+    WORK_MINUTES = 25
+    SMALL_BREAK_MINUTES = 5
+    LARGE_BREAK_MINUTES = 15
+    pom_enable(WORK_MINUTES)
 end
 
 ------
@@ -236,13 +263,6 @@ function pom_timer.time_alert_at(time, show)
         new_time = new_hour .. string.sub(time, 3, 5)
     end
 
-    alert_time = hs.timer.seconds(new_time)
-    current_time = hs.timer.localTime()
-    time_length = alert_time - current_time
-    minutes_until_alert = time_length / 60
-    if (show) then
-        timer_indicator(minutes_until_alert)
-    else
-        pom_enable(minutes_until_alert)
-    end
+    timer_length = (hs.timer.seconds(new_time) - hs.timer.localTime()) / SECONDS_PER_MINUTE
+    pom_enable(timer_length)
 end

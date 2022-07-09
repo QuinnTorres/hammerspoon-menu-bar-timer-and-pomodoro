@@ -15,7 +15,7 @@ For all of the timers, you can also:
 - ➖ Subtract minutes while running
 - 🏷️ Add a label
 
-### ⏲️ Default Timer
+## ⏲️ Default Timer
 
 For the default timer, provide any amount of minutes (including decimals) and a timer will start counting down in your menu bar. You can also add an optional label. You will get a notification when it's done.
 
@@ -31,7 +31,7 @@ For the default timer, provide any amount of minutes (including decimals) and a 
 ![Hammerspoon - Default Timer](examples/Hammerspoon%20-%20Default%20Timer.png)
 > Alert once the default timer is done
 
-### 🍅 Pomodoro Timer
+## 🍅 Pomodoro Timer
 
 The [Pomodoro Timer](https://en.wikipedia.org/wiki/Pomodoro_Technique) will alternate between 25 minute "work" timers and 5 minute "break" timers. After 4 work timers, the next break will be 15 minutes instead of 5 minutes. You will get a notification when each session ends.
 
@@ -47,7 +47,7 @@ The [Pomodoro Timer](https://en.wikipedia.org/wiki/Pomodoro_Technique) will alte
 ![Hammerspoon - Pomodoro Timer](examples/Hammerspoon%20-%20Pomodoro%20Timer.png)
 > Alert once the pomodoro timer is done
 
-### ⏰ Countdown Timer
+## ⏰ Countdown Timer
 
 Provide a 24-hour format time (e.g. "22:00") and a timer will start with the number of minutes between now and the time you specified. You can also add an optional label. You will get a notification when it's done.
 
@@ -56,3 +56,14 @@ Provide a 24-hour format time (e.g. "22:00") and a timer will start with the num
 
 ![Countdown Timer](examples/Countdown%20Timer.png)
 > Countdown timer running in the menu bar
+
+## 📒 Other Functionality
+
+![Alfred - Pause](examples/Alfred%20-%20Pause.png)
+> Pause any running timer
+
+![Alfred - Add](examples/Alfred%20-%20Add.png)
+> Add minutes to any running timer
+
+![Alfred - Subtract](examples/Alfred%20-%20Subtract.png)
+> Subtract minutes from any running timer

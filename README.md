@@ -2,15 +2,20 @@
 
 ## Overview
 
-This [Hammerspoon](https://www.hammerspoon.org) extension can create three different types of minimalist timers in the macOS menu bar: default, pomodoro, and countdown. [Alfred](https://www.alfredapp.com) is a great option for running the extension using the [Hammerspoon Workflow](http://www.packal.org/workflow/hammerspoon-workflow).
+This [Hammerspoon](https://www.hammerspoon.org) extension can create three different types of minimalist timers in the macOS menu bar:
+- ⏲️ Default: a set number of minutes
+- 🍅 Pomodoro: timers that swap between work and break session
+- ⏰ Countdown: a timer based on an alert time
+
+[Alfred](https://www.alfredapp.com) is a great option for running the extension using the [Hammerspoon Workflow](http://www.packal.org/workflow/hammerspoon-workflow).
 
 For all of the timers, you can also:
-- Pause and unpause
-- Add minutes while running
-- Subtract minutes while running
-- Add a label
+- ⏯️ Pause and unpause
+- ➕ Add minutes while running
+- ➖ Subtract minutes while running
+- 🏷️ Add a label
 
-### Default Timer
+### ⏲️ Default Timer
 
 For the default timer, provide any amount of minutes (including decimals) and a timer will start counting down in your menu bar. You can also add an optional label. You will get a notification when it's done.
 
@@ -26,7 +31,7 @@ For the default timer, provide any amount of minutes (including decimals) and a 
 ![Hammerspoon - Default Timer](examples/Hammerspoon%20-%20Default%20Timer.png)
 > Alert once the default timer is done
 
-### Pomodoro Timer
+### 🍅 Pomodoro Timer
 
 The [Pomodoro Timer](https://en.wikipedia.org/wiki/Pomodoro_Technique) will alternate between 25 minute "work" timers and 5 minute "break" timers. After 4 work timers, the next break will be 15 minutes instead of 5 minutes. You will get a notification when each session ends.
 
@@ -42,7 +47,7 @@ The [Pomodoro Timer](https://en.wikipedia.org/wiki/Pomodoro_Technique) will alte
 ![Hammerspoon - Pomodoro Timer](examples/Hammerspoon%20-%20Pomodoro%20Timer.png)
 > Alert once the pomodoro timer is done
 
-### Countdown Timer
+### ⏰ Countdown Timer
 
 Provide a 24-hour format time (e.g. "22:00") and a timer will start with the number of minutes between now and the time you specified. You can also add an optional label. You will get a notification when it's done.
 
